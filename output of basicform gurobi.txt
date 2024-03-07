@@ -1,0 +1,23 @@
+Solved in 0 iterations and 0.02 seconds (0.00 work units)
+Optimal objective  3.780000000e+01
+Optimal solution:
+x[0,0,0] = 1.0
+x[0,0,1] = 0.0
+x[0,0,2] = 5.0
+x[0,0,3] = 4.0
+x[0,0,4] = 17.0
+x[0,0,5] = 2.0
+e[0,0,0] = 4.0
+e[0,0,1] = 7.0
+e[0,0,2] = 0.0
+e[0,0,3] = 0.0
+e[0,0,4] = 0.0
+e[0,0,5] = 2.0
+I[0] = 0.0
+I[1] = 4.0
+I[2] = 12.0
+I[3] = 13.0
+I[4] = 13.0
+I[5] = 0.0
+Optimal value for I[5]: 0.0
+Optimal objective value: 37.8
