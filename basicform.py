@@ -11,15 +11,15 @@ from gurobipy import *
 
 m = Model("ENS491_first")
 
-grid_cost_history = [3, 3, 4.7, 3.2, 4.7, 2.4]
+grid_cost_history = [3, 3, 4.7, 3.2, 4.7, 2.4, 3, 3, 4.7, 3.2, 4.7, 2.4, 3, 3, 4.7, 3.2, 4.7, 2.4, 3, 3, 4.7, 3.2, 4.7, 2.4]
 
-P = [5, 8, 6, 4, 4, 2]
+P = [5, 8, 6, 4, 4, 2, 3, 7, 2, 8, 1, 5, 5, 3, 2, 8, 6, 5, 9, 10, 5, 2, 3, 4]
 
-demand_history = [5, 7, 5, 4, 17, 4]
+demand_history = [5, 7, 5, 4, 17, 4, 8, 16, 3, 7, 12, 8, 7, 2, 15, 3, 4, 3, 9, 20, 8, 13, 6, 7]
 
 distributor = 1
 customers = 1
-time = 6
+time = 24     
 
 
 X = m.addVars(distributor, customers, time, lb=0, vtype= GRB.CONTINUOUS, name = "x")
