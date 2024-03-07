@@ -57,8 +57,6 @@ print('Optimal solution:')
 for v in m.getVars():
     print(f"{v.varName} = {v.x}")
 
-# Print the value of I[5]
-print('Optimal value for I[5]: ' + str(I[5].x))
 
 # Print optimal objective value
 print('Optimal objective value: ' + str(m.objVal) + "\n")
