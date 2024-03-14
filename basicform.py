@@ -17,6 +17,8 @@ P = [5, 8, 6, 4, 4, 2, 3, 7, 2, 8, 1, 5, 5, 3, 2, 8, 6, 5, 9, 10, 5, 2, 3, 4]
 
 demand_history = [5, 7, 5, 4, 17, 4, 8, 16, 3, 7, 12, 8, 7, 2, 15, 3, 4, 3, 9, 20, 8, 13, 6, 7]
 
+M = 9999
+
 distributor = 1
 customers = 1
 time = 24     
@@ -24,7 +26,7 @@ time = 24
 
 X = m.addVars(distributor, customers, time, lb=0, vtype= GRB.CONTINUOUS, name = "x")
 E = m.addVars(distributor, customers, time, lb=0, vtype= GRB.CONTINUOUS, name = "e")
-#Y = m.addVars(distributor, customers, time, lb=0, ub=1, vtype= GRB.BINARY, name = "y")
+Y = m.addVars(distributor, customers, time, lb=0, ub=1, vtype= GRB.BINARY, name = "y")
 I = m.addVars(time, lb=0, vtype= GRB.CONTINUOUS, name = "I")
 
 
@@ -38,6 +40,7 @@ m.addConstrs(X[i,j,t] <= P[t] + I[t] for i in range(distributor) for j in range(
 
 m.addConstrs((quicksum(X[i,j,t] + E[i,j,t] for i in range(distributor) for j in range(customers)) == demand_history[t] for t in range(time)), "ExactDemand")
 
+m.addConstrs(X[i,j,t] <= Y[i,j,t]*M for i in range(distributor) for j in range(customers) for t in range(time))
 
 
 m.setObjective(quicksum(grid_cost_history[t] * E[i, j, t] for t in range(time) for i in range(distributor) for j in range(customers)), GRB.MINIMIZE)
