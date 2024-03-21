@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from gurobipy import *
+import csv
 
 # Load and preprocess the data
 demand_history_df = pd.read_csv('/Users/yunustopcu/Documents/GitHub/predictive-solar-supply-chain/averaged_predictions_2017.csv')
@@ -20,44 +21,50 @@ customers = 1
 time = 24
 initial_inventory = 0
 
-# Iterate over each day in the dataset
-for day_start in range(0, len(demand_history), time):
-    m = Model(f"ENS491_first_Day_{day_start // time + 1}")
+with open('model_solutions.csv', mode='w', newline='') as file:
+    writer = csv.writer(file)
+    # Write the CSV header
+    writer.writerow(['Day', 'Variable', 'Value', 'Optimal Objective Value'])
 
-    # Adjust the index for P and demand_history to match the current day
-    P_day = P[day_start:day_start+time]
-    demand_day = demand_history[day_start:day_start+time]
+    # Iterate over each day in the dataset
+    for day_start in range(0, len(demand_history), time):
+        m = Model(f"ENS491_first_Day_{day_start // time + 1}")
 
-    # Define variables
-    X = m.addVars(distributor, customers, time, lb=0, vtype=GRB.CONTINUOUS, name="x")
-    E = m.addVars(distributor, customers, time, lb=0, vtype=GRB.CONTINUOUS, name="e")
-    Y = m.addVars(distributor, customers, time, lb=0, ub=1, vtype=GRB.BINARY, name="y")
-    I = m.addVars(time, lb=0, vtype=GRB.CONTINUOUS, name="I")
+        # Adjust the index for P and demand_history to match the current day
+        P_day = P[day_start:day_start+time]
+        demand_day = demand_history[day_start:day_start+time]
 
-    # Constraints
-    m.addConstr(I[0] == initial_inventory)
-    m.addConstrs(I[t] + P_day[t] == quicksum(X[i,j,t] for i in range(distributor) for j in range(customers)) + I[t+1] for t in range(time-1))
-    m.addConstr(I[time-1] == 0, "FinalInventory")
+        # Define variables
+        X = m.addVars(distributor, customers, time, lb=0, vtype=GRB.CONTINUOUS, name="x")
+        E = m.addVars(distributor, customers, time, lb=0, vtype=GRB.CONTINUOUS, name="e")
+        Y = m.addVars(distributor, customers, time, lb=0, ub=1, vtype=GRB.BINARY, name="y")
+        I = m.addVars(time, lb=0, vtype=GRB.CONTINUOUS, name="I")
 
-    m.addConstrs(X[i,j,t] <= P_day[t] + I[t] for i in range(distributor) for j in range(customers) for t in range(time))
-    m.addConstrs((quicksum(X[i,j,t] + E[i,j,t] for i in range(distributor) for j in range(customers)) == demand_day[t] for t in range(time)), "ExactDemand")
-    m.addConstrs(X[i,j,t] <= Y[i,j,t]*M for i in range(distributor) for j in range(customers) for t in range(time))
+        # Constraints
+        m.addConstr(I[0] == initial_inventory)
+        m.addConstrs(I[t] + P_day[t] == quicksum(X[i,j,t] for i in range(distributor) for j in range(customers)) + I[t+1] for t in range(time-1))
+        m.addConstr(I[time-1] == 0, "FinalInventory")
 
-    # Objective
-    m.setObjective(quicksum(grid_cost_history[t] * E[i, j, t] for t in range(time) for i in range(distributor) for j in range(customers)), GRB.MINIMIZE)
+        m.addConstrs(X[i,j,t] <= P_day[t] + I[t] for i in range(distributor) for j in range(customers) for t in range(time))
+        m.addConstrs((quicksum(X[i,j,t] + E[i,j,t] for i in range(distributor) for j in range(customers)) == demand_day[t] for t in range(time)), "ExactDemand")
+        m.addConstrs(X[i,j,t] <= Y[i,j,t]*M for i in range(distributor) for j in range(customers) for t in range(time))
 
-    # Optimize model for the current day
-    m.optimize()
+        # Objective
+        m.setObjective(quicksum(grid_cost_history[t] * E[i, j, t] for t in range(time) for i in range(distributor) for j in range(customers)), GRB.MINIMIZE)
 
-    # Update initial inventory for the next day
-    if m.status == GRB.OPTIMAL:
-        initial_inventory = I[time-1].X  # Final inventory of the current day becomes the initial inventory for the next day
+        # Optimize model for the current day
+        m.optimize()
 
-        # Optionally, print solution for each day
-        print(f'MODEL HAS BEEN SOLVED FOR DAY {day_start // time + 1}')
-        for v in m.getVars():
-            if v.X > 0:
-                print(f"{v.varName} = {v.X}")
-        print('Optimal objective value: ' + str(m.objVal) + "\n")
-    else:
-        print(f"Model for Day {day_start // time + 1} is infeasible.")
+        # Update initial inventory for the next day
+        if m.status == GRB.OPTIMAL:
+            initial_inventory = I[time-1].X  # Final inventory of the current day becomes the initial inventory for the next day
+
+            # Log solution for each day
+            for v in m.getVars():
+                if v.X > 0:
+                    writer.writerow([day_start // time + 1, v.varName, v.X, m.objVal])
+        else:
+            print(f"Model for Day {day_start // time + 1} is infeasible.")
+        
+        # In case the model is infeasible, log this status to the CSV as well
+        writer.writerow([day_start // time + 1, 'Model Status', 'Infeasible', 'N/A'])
