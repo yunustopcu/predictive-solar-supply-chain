@@ -86,3 +86,14 @@ for month, group in filtered_df.groupby('Month'):
     print(f"Month {month}: Custom Ratio Change Accuracy for ETS: {ratio_accuracy_ets:.4f}")
     print(f"Month {month}: Custom Ratio Change Accuracy for LSTM: {ratio_accuracy_lstm:.4f}")
     print(f"Month {month}: Custom Ratio Change Accuracy for Average Prediction: {ratio_accuracy_avg:.4f}\n")
+
+
+
+# Select only the columns you want to save to the CSV
+columns_to_save = ['Date', 'Average_Prediction']
+final_df_to_save = merged_df[columns_to_save]
+
+# Save the DataFrame to a CSV file
+final_df_to_save.to_csv('averaged_predictions_2017.csv', index=False)
+
+print("CSV file has been saved.")
