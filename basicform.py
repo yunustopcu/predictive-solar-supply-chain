@@ -4,7 +4,7 @@ from gurobipy import *
 import csv
 
 # Load and preprocess the data
-demand_history_df = pd.read_csv('/Users/yunustopcu/Documents/GitHub/predictive-solar-supply-chain/averaged_predictions_2017.csv')
+demand_history_df = pd.read_csv('/Users/yunustopcu/Documents/GitHub/predictive-solar-supply-chain/non_negative_averaged_predictions_2017.csv')
 solar_production_df = pd.read_csv('/Users/yunustopcu/Documents/GitHub/predictive-solar-supply-chain/hourly_solar_production_data.csv')
 
 # Ensure date formats are consistent and align the datasets
@@ -15,7 +15,7 @@ P = solar_production_df['GTI'].tolist()
 
 # Constants and parameters
 grid_cost_history = [2.2, 2.2, 1.9, 1.9, 1.8, 1.9, 1.7, 1.8, 2.2, 2.3, 2.5, 2.8, 2.9, 3.0, 3.0, 3.2, 3.2, 6.4, 3.2, 3.1, 2.8, 2.8, 2.5, 2.2]
-M = 9999
+M = 999
 distributor = 1
 customers = 1
 time = 24
@@ -43,7 +43,6 @@ with open('model_solutions.csv', mode='w', newline='') as file:
         # Constraints
         m.addConstr(I[0] == initial_inventory)
         m.addConstrs(I[t] + P_day[t] == quicksum(X[i,j,t] for i in range(distributor) for j in range(customers)) + I[t+1] for t in range(time-1))
-        m.addConstr(I[time-1] == 0, "FinalInventory")
 
         m.addConstrs(X[i,j,t] <= P_day[t] + I[t] for i in range(distributor) for j in range(customers) for t in range(time))
         m.addConstrs((quicksum(X[i,j,t] + E[i,j,t] for i in range(distributor) for j in range(customers)) == demand_day[t] for t in range(time)), "ExactDemand")
@@ -66,5 +65,5 @@ with open('model_solutions.csv', mode='w', newline='') as file:
         else:
             print(f"Model for Day {day_start // time + 1} is infeasible.")
         
-        # In case the model is infeasible, log this status to the CSV as well
-        writer.writerow([day_start // time + 1, 'Model Status', 'Infeasible', 'N/A'])
+            # In case the model is infeasible, log this status to the CSV as well
+            writer.writerow([day_start // time + 1, 'Model Status', 'Infeasible', 'N/A'])
