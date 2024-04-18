@@ -4,7 +4,7 @@ import numpy as np
 
 
 def ratio_change_accuracy(y_true, y_pred):
-    # Convert to numpy arrays for easier manipulation
+    # Convert to numpy arrays
     y_true, y_pred = np.array(y_true), np.array(y_pred)
     
     # Ensure no zero values to avoid division by zero

@@ -1,24 +1,36 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Apr 17 20:55:21 2024
-
-@author: busra
-"""
-
 import pandas as pd
 import numpy as np
 from gurobipy import *
 import csv
 
+
+# Randomized Demand Splitting Logic
+def random_demand_split(total_demand):
+    # Create random proportions for 12 customers that sum to 1 (100%)
+    proportions = np.random.uniform(0.05, 0.15, 12)
+    proportions /= proportions.sum()
+    # Ensure the sum of generated proportions is 1 and within the specified range
+    while any(proportions < 0.05) or any(proportions > 0.15):
+        proportions = np.random.uniform(0.05, 0.15, 12)
+        proportions /= proportions.sum()
+    return total_demand * proportions
+
+
+
 # Load and preprocess the data
-demand_history_df = pd.read_csv('C:/Users/busra/Documents/ENS 491/Project/non_negative_averaged_predictions_2017.csv')
-solar_production_df = pd.read_csv('C:/Users/busra/Documents/ENS 491/Project/hourly_solar_production_data.csv')
+demand_history_df = pd.read_csv('/Users/yunustopcu/Documents/GitHub/predictive-solar-supply-chain/non_negative_averaged_predictions_2017.csv')
+solar_production_df = pd.read_csv('/Users/yunustopcu/Documents/GitHub/predictive-solar-supply-chain/hourly_solar_production_data.csv')
 
 # Ensure date formats are consistent and align the datasets
 demand_history_df['Date'] = pd.to_datetime(demand_history_df['Date'])
 solar_production_df['date'] = pd.to_datetime(solar_production_df['date'])
 demand_history = demand_history_df['Average_Prediction'].tolist()
 P = solar_production_df['GTI'].tolist()
+
+
+
+
+
 
 # Constants and parameters
 grid_cost_history = [2.2, 2.2, 1.9, 1.9, 1.8, 1.9, 1.7, 1.8, 2.2, 2.3, 2.5, 2.8, 2.9, 3.0, 3.0, 3.2, 3.2, 6.4, 3.2, 3.1, 2.8, 2.8, 2.5, 2.2]
@@ -30,7 +42,7 @@ customers = 12
 time = 24
 initial_inventory = 0
 
-with open('model_solutions.csv', mode='w', newline='') as file:
+with open('model_solutions_12customers.csv', mode='w', newline='') as file:
     writer = csv.writer(file)
     # Write the CSV header
     writer.writerow(['Day', 'Variable', 'Value', 'Optimal Objective Value'])
@@ -41,7 +53,9 @@ with open('model_solutions.csv', mode='w', newline='') as file:
 
         # Adjust the index for P and demand_history to match the current day
         P_day = P[day_start:day_start+time]
-        demand_day = demand_history[day_start:day_start+time]
+        demand_day = [random_demand_split(d) for d in demand_history[day_start:day_start+time]]
+
+        print(demand_day)
 
         # Define variables
         X = m.addVars(distributor, customers, time, lb=0, vtype=GRB.CONTINUOUS, name="x")
@@ -49,16 +63,17 @@ with open('model_solutions.csv', mode='w', newline='') as file:
         Y = m.addVars(distributor, customers, time, lb=0, ub=1, vtype=GRB.BINARY, name="y")
         I = m.addVars(time, lb=0, vtype=GRB.CONTINUOUS, name="I")
 
+
         # Constraints
         m.addConstr(I[0] == initial_inventory)
         m.addConstrs(I[t] + P_day[t] == quicksum(X[i,j,t] for i in range(distributor) for j in range(customers)) + I[t+1] for t in range(time-1))
 
         m.addConstrs(X[i,j,t] <= P_day[t] + I[t] for i in range(distributor) for j in range(customers) for t in range(time))
-        m.addConstrs((quicksum(X[i,j,t] + E[i,j,t] for i in range(distributor) for j in range(customers)) == demand_day[t] for t in range(time)), "ExactDemand")
-        m.addConstrs(X[i,j,t] <= Y[i,j,t]*M for i in range(distributor) for j in range(customers) for t in range(time))
+        m.addConstrs((quicksum(X[i, j, t] + E[i, j, t] for i in range(distributor)) == demand_day[t][j] for j in range(customers) for t in range(time)), "ExactDemand")
+        #m.addConstrs(X[i,j,t] <= Y[i,j,t]*M for i in range(distributor) for j in range(customers) for t in range(time))
 
         # Objective
-        m.setObjective(quicksum(grid_cost_history[t] * E[i, j, t] for t in range(time) for i in range(distributor) for j in range(customers)) + quicksum(distance[j]*X[i,j,t] for i in range(distributor) for j in range(customers) for t in range(time)), GRB.MINIMIZE)
+        m.setObjective(quicksum(grid_cost_history[t] * E[i, j, t] for t in range(time) for i in range(distributor) for j in range(customers)), GRB.MINIMIZE)
 
         # Optimize model for the current day
         m.optimize()
