@@ -4,16 +4,16 @@ from gurobipy import *
 import csv
 
 
-# Randomized Demand Splitting Logic
-def random_demand_split(total_demand):
-    # Create random proportions for 12 customers that sum to 1 (100%)
-    proportions = np.random.uniform(0.05, 0.15, 12)
-    proportions /= proportions.sum()
-    # Ensure the sum of generated proportions is 1 and within the specified range
-    while any(proportions < 0.05) or any(proportions > 0.15):
-        proportions = np.random.uniform(0.05, 0.15, 12)
-        proportions /= proportions.sum()
-    return total_demand * proportions
+def weighted_demand_split(total_demand, weights):
+    total_weights = sum(weights)
+    proportions = [weight / total_weights for weight in weights]
+    return total_demand * np.array(proportions)
+
+
+
+weights = [7, 10, 12, 13, 15, 19, 22, 24, 10, 12, 23, 21, 18, 27]
+customers = 14  # Update number of customers
+
 
 
 
@@ -38,11 +38,11 @@ distance = [1150.6, 1037.9, 741.8, 508.1, 521.4, 459.3, 486.2, 1140.4, 1140.4, 5
 
 M = 999
 distributor = 1
-customers = 12
+customers = 14
 time = 24
 initial_inventory = 0
 
-with open('model_solutions_12customers.csv', mode='w', newline='') as file:
+with open('model_solutions_14customers.csv', mode='w', newline='') as file:
     writer = csv.writer(file)
     # Write the CSV header
     writer.writerow(['Day', 'Variable', 'Value', 'Optimal Objective Value'])
@@ -53,7 +53,7 @@ with open('model_solutions_12customers.csv', mode='w', newline='') as file:
 
         # Adjust the index for P and demand_history to match the current day
         P_day = P[day_start:day_start+time]
-        demand_day = [random_demand_split(d) for d in demand_history[day_start:day_start+time]]
+        demand_day = [weighted_demand_split(d, weights) for d in demand_history[day_start:day_start+time]]
 
         print(demand_day)
 
